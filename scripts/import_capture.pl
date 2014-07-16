@@ -9,8 +9,13 @@ use strict;
 use warnings;
 use Data::Dumper;
 
-use lib '/software/packages/VCFdb/modules';
-use CTRU::VCFdb;
+use lib '/software/packages/depthDB/modules';
+use CTRU::depthDB;
+
+my $dbhost = 'mgsrv01';
+my $dbname = 'depths_exome_5bp';
+my $dbi = CTRU::depthDB::connect($dbname, $dbhost, "easih_admin", "easih");
+
 
 use Getopt::Std;
 my $opts = 's:';
@@ -19,11 +24,6 @@ getopts($opts, \%opts);
 
 my $infile = $opts{s};
 
-
-my $dbhost = 'mgsrv01';
-my $dbname = 'VCFdb';
-
-my $dbi = CTRU::VCFdb::connect($dbname, $dbhost, "easih_admin", "easih");
 
 
 my $sample_sequence_name = $infile;
@@ -35,10 +35,6 @@ my $sample_name = substr($sample_sequence_name, 0, 7);
 
 print " $sample_name => $sample_sequence_name\n";
 
-my $sid = CTRU::VCFdb::add_sample( $sample_name );
-my $pid = CTRU::VCFdb::add_plate( $plate_name );
-my $ssid = CTRU::VCFdb::add_sample_sequence( $sid, $pid, $sample_name );
-
 
 open( my $in, $infile) || die "Could not open '$infile': $!\n";
 while(<$in>) {
@@ -49,14 +45,14 @@ while(<$in>) {
 
   print "  my ($name, $min, $max, $mean, $lows, $missing, $transcript) = \n";
 
-  my $rid = CTRU::VCFdb::fetch_region_id_by_name( $name );
+  my $rid = CTRU::depthDB::fetch_region_id_by_name( $name );
 
   if ( !$rid ) {
     print STDERR "could not find region: '$name', skipping on to the next one\n";
     next;
   }
 
-  my $cid = CTRU::VCFdb::add_coverage($ssid, $rid, $min, $mean, $max, $lows, $missing);
+  my $cid = CTRU::depthDB::add_coverage($ssid, $rid, $min, $mean, $max, $lows, $missing);
   
   
   

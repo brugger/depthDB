@@ -9,26 +9,30 @@ use strict;
 use warnings;
 use Data::Dumper;
 
-use lib '/software/packages/VCFdb/modules';
-use CTRU::VCFdb;
+use lib '/software/packages/depthDB/modules';
+use CTRU::depthDB;
 
 use Getopt::Std;
-my $opts = 'b:';
-my %opts;
-getopts($opts, \%opts);
-
 my $dbhost = 'mgsrv01';
-my $dbname = 'VCFdb';
+my $dbname = 'depths_exome_5bp';
 
-my $dbi = CTRU::VCFdb::connect($dbname, $dbhost, "easih_admin", "easih");
-open( my $in, $opts{b}) || die "Could not open '$opts{b}': $!\n";
+my $dbi = CTRU::depthDB::connect($dbname, $dbhost, "easih_admin", "easih");
+my $file = shift;
+open( my $in, $file) || die "Could not open '$file': $!\n";
+
 while(<$in>) {
   next if (/#/);
   next if (/^\z/);
+  print;
   chomp;
-  my ($chr, $start, $end, $name, $ref) = split("\t", $_);
-  
-  my $rid = CTRU::VCFdb::add_region($chr, $start, $end, $name, $ref);
+  my ($chr, $start, $end, $name, $ref, $CCDS) = split("\t", $_);
+
+  my $rid = CTRU::depthDB::fetch_region_id_by_position($chr, $start, $end);
+  if ( !$rid ) {
+    $rid = CTRU::depthDB::add_region($chr, $start, $end);
+  }
+
+  CTRU::depthDB::add_transcript($rid, $name, $ref, $CCDS) if ( $rid );
   print "RID :: $rid\n";
   
 }
