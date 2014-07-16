@@ -237,9 +237,123 @@ sub  get_column_names {
 
 # 
 # 
+# Kim Brugger (06 Feb 2012)
+sub replace {
+  my ($dbi, $table, $hash_refs)  = @_;
+
+  my %columns;
+  map { $columns{$_} = 1 } get_column_names( $dbi, $table);
+
+  if ( ref( $hash_refs ) eq "HASH") {
+    $hash_refs = [$hash_refs];
+    
+  }
+ 
+  my (@keys, @all_params, @all_values);
+  my $first_insert = 1;
+  
+  foreach my $hash_ref ( @{ $hash_refs } ) {
+  
+    if ( !$first_insert && int(@keys) != int( keys %{$hash_ref })) {
+      print "Nr of keys in the entries should be idential in each hash\n";
+      return 0;
+    }
+
+    my @values;
+    my @params;
+
+    foreach my $key (keys %$hash_ref ) {
+      
+      if ( ! $columns{$key}) {
+	print STDERR "Column name '$key' is not present in the '$table' table\n";
+	return undef;
+      }
+      if ( $$hash_ref{ $key } ) {
+	push @keys, "$key" if ( $first_insert);
+	push @params, "?";
+	push @values, "$$hash_ref{ $key }";
+      }
+    }
+#    push @all_values, "(". join(",", @values) .")";
+    $first_insert = 0 if ( $first_insert );
+    push @all_values,  @values;
+    push @all_params, "(". join(",", @params) .")";
+  }
+
+#  my $query = "INSERT INTO $table (" .join(",", @keys) .") VALUES (".join(",", @params).")";
+  my $query = "REPLACE INTO $table (" .join(",", @keys) .") VALUES ".join(",", @all_params)."";
+#  print "$query\n";
+  my $sth = prepare($dbi, $query);
+  
+  my $execute_value = $sth->execute(@all_values) || die $DBI::errstr;
+
+  return $sth->{mysql_insertid} ||  -100;
+}
+
+ 
+# 
 # 
 # Kim Brugger (06 Feb 2012)
 sub insert {
+  my ($dbi, $table, $hash_refs)  = @_;
+
+  my %columns;
+  map { $columns{$_} = 1 } get_column_names( $dbi, $table);
+
+  if ( ref( $hash_refs ) eq "HASH") {
+    $hash_refs = [$hash_refs];
+    
+  }
+ 
+  my (@keys, @all_params, @all_values);
+  my $first_insert = 1;
+  
+  foreach my $hash_ref ( @{ $hash_refs } ) {
+  
+    if ( !$first_insert && int(@keys) != int( keys %{$hash_ref })) {
+      print "Nr of keys in the entries should be idential in each hash\n";
+#      print Dumper( $hash_ref );
+#      print Dumper( \@keys );
+      return 0;
+    }
+
+    my @values;
+    my @params;
+
+    foreach my $key (keys %$hash_ref ) {
+      
+      if ( ! $columns{$key}) {
+	print STDERR "Column name '$key' is not present in the '$table' table\n";
+	return undef;
+      }
+      if ( defined $$hash_ref{ $key } ) {
+	push @keys, "$key" if ( $first_insert);
+	push @params, "?";
+	push @values, "$$hash_ref{ $key }";
+      }
+    }
+#    push @all_values, "(". join(",", @values) .")";
+    $first_insert = 0 if ( $first_insert );
+    push @all_values,  @values;
+    push @all_params, "(". join(",", @params) .")";
+  }
+
+#  my $query = "INSERT INTO $table (" .join(",", @keys) .") VALUES (".join(",", @params).")";
+  my $query = "INSERT INTO $table (" .join(",", @keys) .") VALUES ".join(",", @all_params)."";
+#  print "$query\n";
+  my $sth = prepare($dbi, $query);
+  
+  my $execute_value = $sth->execute(@all_values) || die $DBI::errstr;
+
+  return $sth->{mysql_insertid} ||  -100;
+}
+
+
+# 
+# 
+# 
+# Kim Brugger (06 Feb 2012)
+sub insert_single {
   my ($dbi, $table, $hash_ref)  = @_;
 
   my %columns;
