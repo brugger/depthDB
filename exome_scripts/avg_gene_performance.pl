@@ -9,17 +9,16 @@ use strict;
 use warnings;
 use Data::Dumper;
 
-use lib '/software/packages/VCFdb/modules';
-use CTRU::VCFdb;
+use lib '/software/packages/depthDB/modules';
+use CTRU::depthDB;
 
 
 #exit;
 use Getopt::Std;
-
 my $dbhost = 'mgsrv01';
-my $dbname = 'VCFdb_exome';
+my $dbname = 'depths_exome_5bp';
 
-my $dbi = CTRU::VCFdb::connect($dbname, $dbhost, "easih_admin", "easih");
+my $dbi = CTRU::depthDB::connect($dbname, $dbhost, "easih_admin", "easih");
 
 
 my $gene_name = shift;
@@ -31,7 +30,7 @@ if ( $gene_name ) {
 }
 else {
   my %genes;
-  map {$$_{name} =~ s/_Exon.*//ig; $genes{ $$_{ 'name' }}++ } CTRU::VCFdb::fetch_regions();
+  map {$$_{exon_name} =~ s/_Exon.*//ig; $genes{ $$_{ 'exon_name' }}++ } CTRU::depthDB::fetch_exon_names();
 
 #  print Dumper( \%genes );
 
@@ -50,22 +49,32 @@ else {
 sub print_gene_performance {
   my  ( $gene_name ) = @_;
   
-  my @exons = CTRU::VCFdb::fetch_regions_by_gene($gene_name);
+  my @exons = CTRU::depthDB::fetch_regions_by_gene($gene_name);
 
 #  print Dumper( \@exons );
 #  exit;
 
 
-  foreach my $exon ( sort{ my $A = $$a{name};
-			   my $B = $$b{name};
+  foreach my $exon ( sort{ my $A = $$a{exon_name};
+			   my $B = $$b{exon_name};
 			   $A =~ s/.*exon//i;
 			   $B =~ s/.*exon//i;
-			   $A <=> $B } @exons ) {
-  
-    my @coverages = CTRU::VCFdb::fetch_coverages_by_rid( $$exon{ rid });
+			   $A <=> $B  &&
+			   $$a{refseq} cmp $$b{refseq} &&
+			   $$a{CCDS} cmp $$b{CCDS} } @exons
+      ) {
+
+    my $refseq = $$exon{ refseq };
+    my $CCDS   = $$exon{ CCDS   };
+    my $rid    = $$exon{ rid   };
+
+    my $region = CTRU::depthDB::fetch_region_hash( $rid );
+
+    my @coverages = CTRU::depthDB::fetch_coverages_by_rid( $rid );
+
     my (@reads, @min_depth);
     foreach my $coverage ( @coverages ) {
-      my $sample_sequence_hash = CTRU::VCFdb::fetch_sample_sequence_hash( $$coverage{ ssid } );
+      my $sample_sequence_hash = CTRU::depthDB::fetch_sample_hash( $$coverage{ sid } );
       next if ( ! $$sample_sequence_hash{ total_reads });
       print join("\t", $$exon{name}, 
 		 $$sample_sequence_hash{ name },
@@ -78,6 +87,7 @@ sub print_gene_performance {
     }
     
 #  print "$$exon{'name'}:::  @min_depth \n";
+
     
     if (! @min_depth) {
       printf("$$exon{name}\t0\n");
@@ -92,7 +102,8 @@ sub print_gene_performance {
       
       $reads_for_20x /= 1000000;
 
-      printf("$$exon{chr}:$$exon{start}-$$exon{end}\t$$exon{name}\t%.2f\t%dM\n", $exp_depth_30M, $reads_for_20x);
+      printf("$gene_name\t$refseq\t$CCDS\t$$region{chr}:$$region{start}-$$region{end}\t$$exon{exon_name}\t%.2f\t%dM\n", $exp_depth_30M, $reads_for_20x);
+#      printf("$$exon{chr}:$$exon{start}-$$exon{end}\t$$exon{name}\t%.2f\t%dM\n", $exp_depth_30M, $reads_for_20x);
     }
     
 #  print Dumper( \@coverages );
