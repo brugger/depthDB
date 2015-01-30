@@ -235,6 +235,22 @@ sub fetch_regions_by_gene {
   return EASIH::DB::fetch_array_hash( $dbi, $sth, "$gene\_E%" );
 }
 
+# 
+# 
+# 
+# Kim Brugger (20 Nov 2013)
+sub fetch_regions_by_rs {
+  my ( $gene ) = @_;
+
+  if ( ! $gene ) { 
+    print STDERR "fetch_region_by_gene: No gene name provided\n";
+    return -1;
+  }
+  my $q    = "SELECT * FROM transcript WHERE exon_name = ?";
+  my $sth  = EASIH::DB::prepare($dbi, $q);
+  return EASIH::DB::fetch_array_hash( $dbi, $sth, "$gene" );
+}
+
 
 
 
@@ -380,7 +396,6 @@ sub add_coverages {
     my ($sid, $rid, $min, $mean, $max, $missing, $depth_1to5, $depth_6to9, $depth_10to19) = @$entry;
 
 
-
     if ( ! $sid ) { 
       print STDERR "add_coverage: No sample id provided\n";
       return -1;
@@ -437,6 +452,75 @@ sub add_coverages {
 # 
 # 
 # Kim Brugger (20 Nov 2013)
+sub replace_coverages {
+  my ( @coverages ) = @_;
+
+  if ( ! @coverages ) { 
+    print STDERR "add_coverages: No coverage(s) provided\n";
+    return -1;
+  }
+
+  my @new_coverages;
+  foreach my $entry ( @coverages ) {
+    my ($sid, $rid, $min, $mean, $max, $missing, $depth_1to5, $depth_6to9, $depth_10to19) = @$entry;
+
+
+    if ( ! $sid ) { 
+      print STDERR "add_coverage: No sample id provided\n";
+      return -1;
+    }
+
+    if ( ! $rid ) { 
+      print STDERR "add_coverage: No region id provided\n";
+      return -2;
+    }
+
+
+    my $ss_name = fetch_sample_name( $sid );
+    if ( ! $ss_name  ) {
+      print STDERR "add_coverage: Unknown sample-id: $sid\n";
+      return -8;
+    }
+
+    my $r_hash = fetch_region_hash( $rid );
+    if ( ! $r_hash || keys %{$r_hash} == 0) {
+      print STDERR "add_coverage: Unknown region-id: $rid\n";
+      return -9;
+    }
+  
+    #my $c_hash = fetch_coverage_hash( $sid, $rid );
+    #return 1 if ( $c_hash && keys %{$c_hash} > 0 );
+    
+    my %call_hash = ( 'sid'     => $sid,
+		      'rid'     => $rid,
+		      'min'     => $min,
+		      'mean'    => $mean,
+		      'max'     => $max,
+		      'missing' => $missing,
+		      '1to5'    => $depth_1to5, 
+		      '6to9'    => $depth_6to9,  
+		      '10to19'  => $depth_10to19);
+    push @new_coverages, \%call_hash;
+
+    if ( int( @new_coverages ) == 500 ) {
+      (EASIH::DB::replace($dbi, "coverage", \@new_coverages));
+      undef @new_coverages;
+    }
+  }
+
+  if ( int( @new_coverages ) ) {
+    (EASIH::DB::replace($dbi, "coverage", \@new_coverages));
+  }
+
+  return;
+}
+
+
+
+# 
+# 
+# 
+# Kim Brugger (20 Nov 2013)
 sub fetch_coverage_hash {
   my ($sid,  $rid ) = @_;
   if ( ! $rid || ! $sid ) { 
@@ -463,6 +547,26 @@ sub fetch_coverages_by_rid {
   my $q    = "SELECT * FROM coverage WHERE rid = ?";
   my $sth  = EASIH::DB::prepare($dbi, $q);
   return( EASIH::DB::fetch_array_hash( $dbi, $sth, $rid ));
+}
+
+
+
+# 
+# 
+# 
+# Kim Brugger (20 Nov 2013)
+sub fetch_coverages_by_rid_and_sid {
+  my ($rid, $sid ) = @_;
+
+  if ( ! $rid || ! $sid) { 
+    print STDERR "fetch_coverages_by_rid: No region id or sample id prorided\n";
+    return {};
+  }
+
+  my $q    = "SELECT * FROM coverage WHERE rid = ? and sid = ?";
+  my $sth  = EASIH::DB::prepare($dbi, $q);
+
+  return( EASIH::DB::fetch_array_hash( $dbi, $sth, $rid, $sid ));
 }
 
 
