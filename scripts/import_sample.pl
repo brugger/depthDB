@@ -25,6 +25,17 @@ my $cwd      = `pwd`;
 chomp($cwd);
 
 
+my $qc_file = "$infile.vcf.qc";
+if ( ! -e "$qc_file" ) {
+  $qc_file =~ s/.*\///;
+  if ( -e "vcfs/$qc_file" ) {
+    $qc_file = "vcfs/$qc_file";
+  }
+  else { 
+    die "Cannot find qc file (vcfs/$qc_file)!\n";
+  }
+}
+
 
 my $sample_name = $infile;
 $sample_name =~ s/.*\///;
@@ -35,7 +46,7 @@ print " $infile :: $sample_name\n";
 
 my $sid = CTRU::depthDB::add_sample( $sample_name );
 
-readin_stats("$infile.bam.flagstat", "$infile.bam.isize", "$infile.vcf.qc");
+readin_stats("$infile.bam.flagstat", "$infile.bam.isize", $qc_file);
 
 
 
