@@ -253,6 +253,8 @@ sub replace {
   my $first_insert = 1;
   
   foreach my $hash_ref ( @{ $hash_refs } ) {
+
+    #print Dumper( $hash_ref );
   
     if ( !$first_insert && int(@keys) != int( keys %{$hash_ref })) {
       print "Nr of keys in the entries should be idential in each hash\n";
@@ -264,11 +266,11 @@ sub replace {
 
     foreach my $key (keys %$hash_ref ) {
       
-      if ( ! $columns{$key}) {
+      if ( ! $columns{$key} ) {
 	print STDERR "Column name '$key' is not present in the '$table' table\n";
 	return undef;
       }
-      if ( $$hash_ref{ $key } ) {
+      if ( defined $$hash_ref{ $key } ) {
 	push @keys, "$key" if ( $first_insert);
 	push @params, "?";
 	push @values, "$$hash_ref{ $key }";
@@ -282,7 +284,7 @@ sub replace {
 
 #  my $query = "INSERT INTO $table (" .join(",", @keys) .") VALUES (".join(",", @params).")";
   my $query = "REPLACE INTO $table (" .join(",", @keys) .") VALUES ".join(",", @all_params)."";
-#  print "$query\n";
+##  print "$query\n";
   my $sth = prepare($dbi, $query);
   
   my $execute_value = $sth->execute(@all_values) || die $DBI::errstr;
