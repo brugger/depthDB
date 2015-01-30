@@ -24,6 +24,7 @@ my $infile = shift || usage();
 my $sample_name = $infile;
 $sample_name =~ s/.*\///;
 $sample_name =~ s/\_mem.*//;
+$sample_name =~ s/\..*//;
 
 
 my $sid = CTRU::depthDB::fetch_sample_id( $sample_name );
@@ -45,4 +46,4 @@ while (<$in>) {
 }
   
   
-CTRU::depthDB::add_coverages( @coverages );
+CTRU::depthDB::replace_coverages( @coverages );
