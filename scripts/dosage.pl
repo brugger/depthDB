@@ -49,6 +49,7 @@ my %gene_list;
 use Getopt::Std;
 my $dbhost = 'mgsrv01';
 my $dbname = 'depths_exome_5bp';
+#$dbname = "frags_exome";
 
 my $dbi = CTRU::depthDB::connect($dbname, $dbhost, "easih_admin", "easih");
 
@@ -103,6 +104,8 @@ foreach my $gene_name ( keys %gene_list ) {
     next if ( $refseq !~ /$gene_list{ $gene_name }/);
 
     my $region = CTRU::depthDB::fetch_region_hash( $rid );
+
+    my $region_size = $$region{ end } - $$region{ start } + 1;
   
     my @coverages = CTRU::depthDB::fetch_coverages_by_rid( $rid );
   
@@ -117,7 +120,7 @@ foreach my $gene_name ( keys %gene_list ) {
 
       next if ( $$sample_sequence_hash{ name } =~ /beta/i);
       if ( $$sample_sequence_hash{ name } eq $sample_name ) {
-	$sample_min_depth = $$coverage{mean} || 0;
+	$sample_min_depth = $$coverage{mean} || $$coverage{min} || 0;
 #      $sample_reads = $$sample_sequence_hash{ total_reads };
 	$sample_reads = $$sample_sequence_hash{ mapped_reads } - $$sample_sequence_hash{ duplicate_reads };
 	next;
@@ -126,7 +129,7 @@ foreach my $gene_name ( keys %gene_list ) {
 #    next if ( ! $sample_reads );
       
       next if ( ! $$sample_sequence_hash{ total_reads }|| $$sample_sequence_hash{ total_reads } < $MIN_READS);
-      push @min_depth, $$coverage{mean} || 0;
+      push @min_depth, $$coverage{mean} || $$coverage{min} || 0;
 #    push @reads, $$sample_sequence_hash{ total_reads };
 #    push @reads, $$sample_sequence_hash{ mapped_reads } - $$sample_sequence_hash{ duplicate_reads };
       $$sample_sequence_hash{ duplicate_reads } ||= 0;
@@ -155,11 +158,11 @@ foreach my $gene_name ( keys %gene_list ) {
 
 
       if ( $ratio < 0.15 ) {
-	print "$$exon{ exon_name } homo deletion ( > 99% confidence) RATIO:$ratio\n";
+	print "$$exon{ exon_name } homo deletion ( > 99% confidence) RATIO:$ratio $region_size\n";
 	$dosage_tab->write($dosage_offset, 1, "deletion (homo)");
       }
       else {
-	print "$$exon{ exon_name } het deletion ( > 99% confidence) RATIO:$ratio\n";
+	print "$$exon{ exon_name } het deletion ( > 99% confidence) RATIO:$ratio $region_size\n";
 	$dosage_tab->write($dosage_offset, 1, "deletion (het)");
       }
 
@@ -171,11 +174,11 @@ foreach my $gene_name ( keys %gene_list ) {
     }
     elsif ( $sample_min_depth < $mean-1.96*$sd ) {
       if ( $ratio < 0.15 ) {
-	print "$$exon{ exon_name } homo deletion ( > 95% confidence) RATIO:$ratio\n";
+	print "$$exon{ exon_name } homo deletion ( > 95% confidence) RATIO:$ratio $region_size\n";
 	$dosage_tab->write($dosage_offset, 1, "deletion (homo)");
       }
       else {
-	print "$$exon{ exon_name } het deletion ( > 95% confidence) RATIO:$ratio\n";
+	print "$$exon{ exon_name } het deletion ( > 95% confidence) RATIO:$ratio $region_size\n";
 	$dosage_tab->write($dosage_offset, 1, "deletion (het)");
       }
       $dosage_tab->write($dosage_offset, 0, "$$exon{ exon_name }");
@@ -183,14 +186,14 @@ foreach my $gene_name ( keys %gene_list ) {
       $dosage_offset++;
     }
     elsif  ( $sample_min_depth > $mean+2.58*$sd ) {
-      print "$$exon{ exon_name } duplication ( > 99% confidence) RATIO:$ratio\n";
+      print "$$exon{ exon_name } duplication ( > 99% confidence) RATIO:$ratio $region_size\n";
       $dosage_tab->write($dosage_offset, 0, "$$exon{ exon_name }");
       $dosage_tab->write($dosage_offset, 1, "Duplication");
       $dosage_tab->write($dosage_offset, 2, "> 95%");
       $dosage_offset++;
     }
     elsif ( $sample_min_depth > $mean+1.96*$sd ) {
-      print "$$exon{ exon_name } duplication ( > 95% confidence) RATIO:$ratio\n";
+      print "$$exon{ exon_name } duplication ( > 95% confidence) RATIO:$ratio $region_size\n";
       $dosage_tab->write($dosage_offset, 0, "$$exon{ exon_name }");
       $dosage_tab->write($dosage_offset, 1, "duplication");
       $dosage_tab->write($dosage_offset, 2, "> 99%");

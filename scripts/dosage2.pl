@@ -20,6 +20,7 @@ my $MIN_READS = 25_000_000;
 use Getopt::Std;
 my $dbhost = 'mgsrv01';
 my $dbname = 'depths_exome_5bp';
+#$dbname = "frags_exome";
 
 my $dbi = CTRU::depthDB::connect($dbname, $dbhost, "easih_admin", "easih");
 
@@ -73,7 +74,7 @@ foreach my $exon ( sort{ my $A = $$a{exon_name};
 
     next if ( $$sample_sequence_hash{ name } =~ /beta/i);
     if ( $$sample_sequence_hash{ name } eq $sample_name ) {
-      $sample_min_depth = $$coverage{mean} || 0;
+      $sample_min_depth = $$coverage{mean} || $$coverage{min} || 0;
 #      $sample_reads = $$sample_sequence_hash{ total_reads };
       $sample_reads = $$sample_sequence_hash{ mapped_reads } - $$sample_sequence_hash{ duplicate_reads };
       next;
@@ -82,7 +83,7 @@ foreach my $exon ( sort{ my $A = $$a{exon_name};
 #    next if ( ! $sample_reads );
       
     next if ( ! $$sample_sequence_hash{ total_reads }|| $$sample_sequence_hash{ total_reads } < $MIN_READS);
-    push @min_depth, $$coverage{mean} || 0;
+    push @min_depth, $$coverage{mean} || $$coverage{min} || 0;
 #    push @reads, $$sample_sequence_hash{ total_reads };
 #    push @reads, $$sample_sequence_hash{ mapped_reads } - $$sample_sequence_hash{ duplicate_reads };
     $$sample_sequence_hash{ duplicate_reads } ||= 0;
@@ -109,7 +110,7 @@ foreach my $exon ( sort{ my $A = $$a{exon_name};
     $ratio = 0.0001 if ( $ratio == 0);
     my $log_ratio = sprintf("%.4f", log( $ratio )/log(2));
     
-#    printf("$$exon{ exon_name }\t$sample_min_depth\t%.2f\t%.2f\t$log_ratio\t$ratio\n", $exp_depth, $sd);
+    printf("$$exon{ exon_name }\t$sample_min_depth\t%.2f\t%.2f sd\tlog2: $log_ratio\t$ratio\n", , $sd);
     my $mean = $exp_depth;
 
     if ( $sample_min_depth < $mean-2.58*$sd ) {

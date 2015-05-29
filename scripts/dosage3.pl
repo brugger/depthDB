@@ -69,7 +69,7 @@ foreach my $exon ( sort{ my $A = $$a{exon_name};
   foreach my $coverage ( @coverages ) {
     my $sample_sequence_hash = CTRU::depthDB::fetch_sample_hash( $$coverage{ sid } );
 
-#    print "$$sample_sequence_hash{ name }\n";
+    next if ($$sample_sequence_hash{ gender } ne 'M' );
 
     next if ( $$sample_sequence_hash{ name } =~ /beta/i);
     if ( $$sample_sequence_hash{ name } eq $sample_name ) {
@@ -116,6 +116,7 @@ foreach my $exon ( sort{ my $A = $$a{exon_name};
       $depth = $depth*$sample_reads/$reads;
 
       my ($exp_depth, $sd) = normalise(\@reads, \@min_depth, $reads);
+      $exp_depth ||= 1;
       
       my $ratio = sprintf("%.4f", $depth/$exp_depth);
 #      print  " -- $ratio \n";
@@ -135,8 +136,13 @@ foreach my $exon ( sort{ my $A = $$a{exon_name};
     $ratio = 0.0001 if ( $ratio == 0);
     my $log_ratio = sprintf("%.4f", log( $ratio )/log(2));
     
-    printf("$$exon{ exon_name }\t$sample_min_depth\t%.2f\t%.2f\t$log_ratio\t$ratio\t$avg_ratio\t%.4f\n", 
-	   $exp_depth, $sd, $ratio/$avg_ratio);
+#    printf("$$exon{ exon_name }\t$sample_min_depth\t%.2f\t%.2f\t$log_ratio\t$ratio\t$avg_ratio\t%.4f\n", 
+#	   $exp_depth, $sd, $ratio/$avg_ratio);
+
+    printf("$$exon{ exon_name }\t$sample_min_depth\t%.2f\t$ratio\t$log_ratio\n", 
+	   $exp_depth);
+
+
 
     my $mean = $exp_depth;
 #  printf("$$exon{ exon_name }\t$sample_min_depth\t%.2f\t%2.f\t%.2f\t$ratio\n", $mean-1.96*$sd, $mean, $mean+1.96*$sd);

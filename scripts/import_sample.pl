@@ -25,16 +25,6 @@ my $cwd      = `pwd`;
 chomp($cwd);
 
 
-my $qc_file = "$infile.vcf.qc";
-if ( ! -e "$qc_file" ) {
-  $qc_file =~ s/.*\///;
-  if ( -e "vcfs/$qc_file" ) {
-    $qc_file = "vcfs/$qc_file";
-  }
-  else { 
-    die "Cannot find qc file (vcfs/$qc_file)!\n";
-  }
-}
 
 
 my $sample_name = $infile;
@@ -42,14 +32,12 @@ $sample_name =~ s/.*\///;
 $sample_name =~ s/.bam//;
 $sample_name =~ s/\_mem//;
 
+my $qc_file = "stats/$sample_name.vcf.QC";
+
 print " $infile :: $sample_name\n";
 
 my $sid = CTRU::depthDB::add_sample( $sample_name );
-
-readin_stats("$infile.bam.flagstat", "$infile.bam.isize", $qc_file);
-
-
-
+readin_stats("stats/$sample_name.flagstat", "stats/$sample_name.isize", $qc_file);
 
 
 # 
@@ -99,8 +87,6 @@ sub readin_stats {
   }
   close( $in );
 
-
-
   my $gender = 'U';
 
   open(  $in, $vcf_qc_file) || die "Could not open '$vcf_qc_file': $!\n";
@@ -111,7 +97,6 @@ sub readin_stats {
     my @F = split("\t", $_ );
     
 #    my ( $sample_name, $mean_het, $mean_homo, $het_homo, $het_homo_score, $X_homo_het_ratio, $gender ) = split("\t", $_);
-
 #    print "G: $gender $F[0] \n";
 
     $gender = 'F' if ($F[6] eq 'female');
@@ -121,7 +106,8 @@ sub readin_stats {
   }
   close( $in );
 
-  
+#  print Dumper( \%res )  . "    $gender \n";
+ 
   CTRU::depthDB::add_sample_stats( $sid, $res{total_reads}, $res{mapped_reads}, $res{dup_reads}, $res{mean_insert_size}, $gender);
 
 }
